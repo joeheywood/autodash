@@ -1,0 +1,24 @@
+{
+    "id": "0FEF905E",
+    "path": "~/indicators_dash/R/reverse_econ_damage.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "1409182853",
+    "contents": "",
+    "dirty": false,
+    "created": 1613488209772.0,
+    "source_on_save": false,
+    "relative_order": 16,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Sourceij461v73ffeg"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1613053460,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1613053460,
+    "read_only": false,
+    "read_only_alternatives": []
+}

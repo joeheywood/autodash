@@ -1,0 +1,27 @@
+{
+    "id": "9D968EB8",
+    "path": "~/resilience_dashboard/R/chart_from_data.R",
+    "project_path": "R/chart_from_data.R",
+    "type": "r_source",
+    "hash": "3139624080",
+    "contents": "",
+    "dirty": false,
+    "created": 1612889275548.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "95,0",
+        "scrollLine": "57",
+        "marks": "<:95,0\n>:97,16"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1615829335,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1615829335869,
+    "read_only": false,
+    "read_only_alternatives": []
+}

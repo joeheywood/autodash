@@ -1,0 +1,28 @@
+{
+    "id": "90E01C94",
+    "path": "~/resilience_dashboard/R/dsh_bar.R",
+    "project_path": "R/dsh_bar.R",
+    "type": "r_source",
+    "hash": "1650661646",
+    "contents": "",
+    "dirty": false,
+    "created": 1612960335211.0,
+    "source_on_save": false,
+    "relative_order": 11,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "43,26",
+        "scrollLine": "0",
+        "marks": "<:44,30\n>:44,30"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1615373741,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1615373741708,
+    "read_only": false,
+    "read_only_alternatives": []
+}

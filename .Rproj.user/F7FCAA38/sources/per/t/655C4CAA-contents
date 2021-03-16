@@ -1,0 +1,484 @@
+library(dplyr)
+library(zoo)
+library(readxl)
+library(plotly)
+library(gglaplot)
+library(stringr)
+library(tidyxl)
+library(tidyr)
+library(unpivotr)
+library(data.table)
+library(janitor)
+library(googledrive)
+library(purrr)
+library(ddpcr)
+library(readr)
+library(lubridate)
+library(scales)
+library(ggplot2)
+
+
+pl <- gla_pal(n = 6)
+
+hpl <- gla_pal(gla_theme = "default",palette_type = "highlight", n = c(1, 1) )
+dt_pth <- "Q:/Teams/D&PA/Apps/COVID19 Recovery Dashboard/data"
+source("R/add_weekends.R")
+
+
+
+static_line <- function(dat, xvar, yvar, ylabs, ttl = "",  
+                        src = "*", ...) {
+    opts <- list(...)
+    opts <- opts[!sapply(opts, function(x) all(is.na(x)))]
+    
+    
+    dat$xvar <- dat[[xvar]]
+    dat$yvar <- dat[[yvar]]
+    dat$ylab <- dat[[ylabs]]
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    
+    
+    ggplot(dat, aes(x = xvardt, y = yvar, colour = ylab)) + 
+        geom_line(color = pl[1], size = 1.4) + 
+        theme_gla() +
+        scale_x_date(date_breaks = "4 month", date_labels = "%b %Y")  +
+        labs(title = ttl,
+             subtitle = "",
+             caption = paste0("Data source: ", src) ) +
+        # theme(base_size = 14)
+        theme(plot.title = element_text(size = 10),
+              axis.text=element_text(size = 8),
+              plot.caption = element_text(size = 8))
+    
+    
+}
+
+
+add_source <- function(src, lnk = "", y = -0.1) {
+    if(nchar(lnk) == 0) {
+        txt <- glue("<i>Source: <i>{src}</i>")
+    } else {
+        txt <- glue("<i>Source: <i><a href='{lnk}'>{src}</a></i>")
+        
+    }
+    list(
+        x = 1, y = y,
+        text = txt,
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=12, color="#565656")
+    )
+}
+
+
+
+dsh_line <- function(dat, xvar, yvar, ttl = "", mrk = FALSE, wdth = 4, src = "*", 
+                     link = "", ...) {
+    
+    
+    opts <- list(...)
+    opts <- opts[!sapply(opts, function(x) all(is.na(x)))]
+    # print(names(opts))
+    
+    ### check xvar and yvar are names of dat
+    
+    dat$xvar <- dat[[xvar]]
+    dat$yvar <- dat[[yvar]]
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    if(!"text" %in% names(dat)) {
+        dat$text <- ""
+    }
+    
+    # dat$txt <- ifelse("txt" %in% names(opts), dat[[opts$txt]], "")
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    
+    
+    if(mrk == TRUE) {
+        if("circles" %in% names(opts)) {
+            mrkx <- list(color = "#ffffff", 
+                         line = list(color = pl[1], width = wdth),
+                         size = wdth * 2)
+            
+        } else {
+            mrkx <- list(color = pl[1], size = wdth * 2)
+        }
+    } else {
+        mrkx <- list()
+    }
+    
+    hv <- ifelse("hvr" %in% names(opts), opts$hvr, "%{x}: %{y:.2f}")
+    hv <- paste0(hv, "<extra></extra>")
+    
+    lnx <- list(color = pl[1], width = wdth)
+    
+    md <- ifelse(mrk, "lines+markers", "lines")
+    
+    p <- plot_ly(type = "scatter", mode = md,  data = dat, 
+                 x = ~xvar, y = ~yvar, hovertemplate = hv, 
+                 text = ~text, line = lnx, marker = mrkx) %>%  
+        layout(title = list(text = ttl, x = 0.01), 
+               margin = TRUE,
+               annotations = add_source(src, link),
+               yaxis = list(title = yxttl, 
+                            showgrid = TRUE, 
+                            tickformat = tckfmt,
+                            gridcolor = "#dddddd"), 
+               xaxis = list(title = xxttl, showgrid = FALSE))
+    if("yrng" %in% names(opts)) {
+        p <- p %>% layout(yaxis = list(range = opts$yrng))
+    }
+    p
+}
+
+dsh_bar <- function(dat, xvar, yvar, ttl = "", src = "*", ...) {
+    ### check xvar and yvar are names of dat
+    srcs <- list(
+        x = 1, y = -0.1,
+        text = paste0("<i>Data source: ", src, "</i>"),
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=12, color="#565656")
+    )
+    
+    
+    opts <- list(...)
+    opts <- opts[!sapply(opts, function(x) all(is.na(x)))]
+    # print(names(opts))
+    
+    
+    dat$xvar <- dat[[xvar]]
+    dat$yvar <- dat[[yvar]]
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    dat$txt <- ifelse("txt" %in% names(opts), dat[[opts$txt]], "")
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    
+    
+    hv <- ifelse("hvr" %in% names(opts), opts$hvr, "%{x}: %{y:.2f}")
+    hv <- paste0(hv, "<extra></extra>")
+    
+    mrkx <- list(color = pl[1])
+    
+    
+    plot_ly(data = dat, type = "bar", 
+            x = ~xvar, y = ~yvar,  marker = mrkx ) %>% 
+        layout(title = list(text = ttl, x = 0.05),
+               annotations = srcs,
+               margin = TRUE, 
+               yaxis = list(title = yxttl, tickformat = tckfmt),
+               xaxis = list(title = xxttl))
+    
+}
+
+dsh_line_dash <- function() {
+    
+}
+
+
+
+
+circle_markers <- function() {
+    
+}
+
+
+dsh_subplot <- function(args, nr = 1, shrx = FALSE, shry = FALSE) {
+    plots <- list()
+    last <- tail(args, 1)[[1]]
+    for (a in args) {
+        print(a$ttl)
+        print(last$ttl)
+        show <- a$ttl == last$ttl
+        print(show)
+        plotttl <- list(
+            x = 0.01, y = 0.98,
+            text = a$ttl,
+            showarrow = F, xref='paper', yref='paper',
+            xanchor='left', yanchor='auto', xshift=0, yshift=0,
+            font=list(size=12, color="#565656")
+            
+        )
+        plots[[a$ttl]] <- dsh_mline(a$dat, a$xvar, a$yvar, a$ylabs, a$mrk, ttl = "", 
+                            wdth = a$wdth, src = a$src, hg = m$highlight, 
+                            leg = show) %>%
+            layout(annotations = plotttl)
+    }
+    subplot(plots, nrows = nr, shareX = shrx, shareY = shry)
+    
+}
+
+dsh_mline <- function(dat, xvar, yvar, ylabs, mrk = FALSE, ttl = "", 
+                      wdth = 4, src = "", link = "", hg = FALSE, leg = T, ...) {
+    opts <- list(...)
+    # print(names(dat))
+    
+    dat$xvar <- dat[[xvar]]
+    dat$yvar <- dat[[yvar]]
+    dat$ylabs <- dat[[ylabs]]
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    hv <- ifelse("hvr" %in% names(opts), opts$hvr, "%{y}")
+    hv <- paste0(hv, "<extra></extra>")
+    
+    dat$txt <- ifelse("txt" %in% names(opts), dat[[opts$txt]], "")
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    mrkx1 <- list()
+    if(mrk == TRUE) mrkx1 <- list(size = wdth * 2)
+    
+    
+    lnx1 <- list(width = wdth)
+    
+    nvals <- length(unique(dat$ylabs))
+    
+    if(hg == TRUE) {
+        if(unique(dat$ylabs)[1] == "London") {
+            mpl <- hpl
+        } else {
+            mpl <- rev(hpl)
+        }
+    } else {
+       mpl <- gla_pal(n = nvals) 
+    }
+    
+    md <- ifelse(mrk, "lines+markers", "lines")
+    p <- plot_ly(
+        data = dat, type = "scatter", mode = "lines", colors = mpl,
+        showlegend = leg, text = ~text,
+        x = ~xvar, y = ~yvar, color = ~ylabs, line = lnx1, marker = mrkx1,
+        hovertemplate = hv) %>%  
+        layout(title = list(text = ttl, x = 0.05),
+               annotations = add_source(src, link),
+               legend = list(orientation = "h"),
+               hovermode = "x unified",
+               margin = TRUE, 
+               yaxis = list(title = yxttl, tickformat = tckfmt, showgrid = TRUE, 
+                            gridcolor = "#dddddd"),
+               xaxis = list(title = xxttl, showgrid = FALSE))
+    if("yrng" %in% names(opts)) {
+        p <- p %>% layout(yaxis = list(range = opts$yrng))
+    }
+    p
+}
+
+dsh_mline_dash <- function(dat, xvar, yvar, ylabs, mrk = FALSE, ttl = "", 
+                          wdth = 4, src = "", link = "", hg = FALSE, leg = T, ...) {
+    opts <- list(...)
+    # print(names(dat))
+    
+    dat$xvar <- dat[[xvar]]
+    dat$yvar <- dat[[yvar]]
+    dat$ylabs <- dat[[ylabs]]
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    wwd <- which(dat$text == "dotted")
+    wws <- which(dat$text == "solid")
+    prev_val <- which(dat$xvar == max(dat$xvar[wws]))
+    
+    wwd <- c(prev_val, wwd)
+    hv <- ifelse("hvr" %in% names(opts), opts$hvr, "%{y}")
+    hv <- paste0(hv, "<extra></extra>")
+    
+    dat$txt <- ifelse("txt" %in% names(opts), dat[[opts$txt]], "")
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    mrkx1 <- list()
+    if(mrk == TRUE) mrkx1 <- list(size = wdth * 2)
+    
+    
+    lnx1 <- list(width = wdth)
+    
+    nvals <- length(unique(dat$ylabs))
+    
+    if(hg == TRUE) {
+        mpl <- hpl
+    } else {
+        mpl <- gla_pal(n = nvals) 
+    }
+    
+    md <- ifelse(mrk, "lines+markers", "lines")
+    p <- plot_ly(
+        data = dat[wws,], type = "scatter", mode = "lines", colors = mpl,
+        showlegend = leg, text = ~text,
+        x = ~xvar, y = ~yvar, color = ~ylabs, line = lnx1, marker = mrkx1,
+        hovertemplate = hv) %>%  
+        add_trace(
+            data = dat[wwd,], 
+            showlegend = FALSE,
+            x = ~xvar, y = ~yvar, color = ~ylabs, line = list(dash = "dash") 
+            ) %>%
+        layout(title = list(text = ttl, x = 0.05),
+               annotations = add_source(src, link),
+               legend = list(orientation = "h"),
+               hovermode = "x unified",
+               margin = TRUE, 
+               yaxis = list(title = yxttl, tickformat = tckfmt, showgrid = TRUE, 
+                            gridcolor = "#dddddd"),
+               xaxis = list(title = xxttl, showgrid = FALSE))
+    if("yrng" %in% names(opts)) {
+        p <- p %>% layout(yaxis = list(range = opts$yrng))
+    }
+    p
+}
+
+
+dsh_bar <- function(dat, xvar, yvar, ttl, src = "", ...) {
+    opts <- list(...)
+    srcs <- list(
+        x = 1, y = -0.1,
+        text = paste0("<i>Data source: ", src, "</i>"),
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=12, color="#565656")
+    )
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    dat$xvar <- dat[[xvar]]
+    # dat$xvar <- as.Date(dat$xvar)
+    dat$yvar <- dat[[yvar]]
+    clr <- gla_pal(n = 1)[1]
+    plot_ly(
+        data = dat, type = "bar", x = ~xvar, y = ~yvar, 
+        marker = list(color = clr, line = list(color = clr))) %>%  
+        layout(title = list(text = ttl, x = 0.05),
+               annotations = srcs,
+               margin = TRUE, 
+               yaxis = list(title = yxttl, tickformat = tckfmt, showgrid = TRUE, 
+                            gridcolor = "#dddddd"),
+               xaxis = list(title = xxttl, showgrid = FALSE))
+}
+
+dsh_mbar <- function(dat, xvar, yvar, ttl, ylabs, src = "", lnk = "", ...) {
+    opts <- list(...)
+    srcs <- list(
+        x = 1, y = -0.1,
+        text = paste0("<i>Data source: ", src, "</i>"),
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=12, color="#565656")
+    )
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    dat$xvar <- dat[[xvar]]
+    # dat$xvar <- as.Date(dat$xvar)
+    dat$yvar <- dat[[yvar]]
+    dat$ylabs <- dat[[ylabs]]
+    clrs <- gla_pal(n = 2)
+    plot_ly(
+        data = dat, type = "bar", x = ~xvar, y = ~yvar, 
+        colors = clrs, color = ~ylabs ) %>%  
+        layout(title = list(text = ttl, x = 0.05),
+               annotations = add_source(src, lnk),
+               margin = TRUE, 
+               yaxis = list(title = yxttl, tickformat = tckfmt, showgrid = TRUE, 
+                            gridcolor = "#dddddd"),
+               xaxis = list(title = xxttl, showgrid = FALSE))
+    
+}
+
+dsh_slope <- function(dat, xvar, yvar, ylabs, ttl = "", lbfmt = "", wdth = 5,
+                      src = "", ...) {
+    opts <- list(...)
+    # print(names(dat))
+    
+    srcs <- list(
+        x = 1, y = -0.1,
+        text = paste0("<i>Data source: ", src, "</i>"),
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=12, color="#565656")
+    )
+    
+    
+    dat$xvar <- dat[[xvar]]
+    dat$yvar <- dat[[yvar]]
+    dat$ylabs <- dat[[ylabs]]
+    yxttl <- ifelse("yxttl" %in% names(opts), opts$yxttl, "")
+    xxttl <- ifelse("xxttl" %in% names(opts), opts$xxttl, "")
+    
+    hv <- ifelse("hvr" %in% names(opts), opts$hvr, "%{y}")
+    hv <- paste0(hv, "<extra></extra>")
+    
+    dat$txt <- ifelse("txt" %in% names(opts), dat[[opts$txt]], "")
+    tckfmt <- ifelse("tckfmt" %in% names(opts), opts$tckfmt, "")
+    
+    mrkx1 = list(size = wdth * 2)
+    
+    lnx1 <- list(width = wdth)
+    
+    nvals <- length(unique(dat$ylabs))
+    mpl <- gla_pal(n = nvals)
+    clrs <- mpl
+    names(clrs) <- unique(dat$yvllb)
+    
+    first_anns <- list()
+    fadat <- dat %>% filter(xvar == first(xvar)) %>% arrange(yvllb)
+    for(i in 1:nrow(fadat)) {
+        yval <- fadat$yvar[i]
+        yvallb <- ifelse(lbfmt == "%", paste0( round(yval * 100), "%"), yval)
+        ann <-  list(x = fadat$xvar[i], y = yval,
+                            xanchor = 'right', yanchor = 'middle',
+                            text = paste0(fadat$yvllb[i], "<br />(", yvallb, ")"),
+                            font = list(family = 'Arial', size = 14, 
+                                        color = mpl[i]), showarrow = FALSE)
+        first_anns <- c(first_anns, list(ann))
+    }
+    
+    last_anns <- list()
+    ladat <- dat %>% filter(xvar == last(xvar)) %>% arrange(yvllb)
+    for(i in 1:nrow(fadat)) {
+        yval <- ladat$yvar[i]
+        yvallb <- ifelse(lbfmt == "%", paste0( round(yval * 100), "%"), yval)
+        ann <-  list(x = ladat$xvar[i], y = yval,
+                            xanchor = 'left', yanchor = 'middle',
+                            text = paste0(ladat$yvllb[i], "<br />(", yvallb, ")"),
+                            font = list(family = 'Arial', size = 14, 
+                                        color = mpl[i]), showarrow = FALSE)
+        last_anns <- c(last_anns, list(ann))
+    }
+    
+    mrg = list(
+        l = 100, 
+        r = 100, 
+        b = 200, 
+        t = 100,
+        pad = 20
+    )
+    
+    
+    plot_ly(
+        data = dat, type = "scatter", mode = "lines+markers", colors = mpl,
+        x = ~xvar, y = ~yvar, color = ~ylabs, line = lnx1, marker = mrkx1,
+        showlegend = FALSE,
+        hovertemplate = hv) %>%  
+        # add_annotations(data = dat %>% filter(xvar == first(xvar)), 
+        #                 #colors = mpl,
+        #                 text = ~yvllb, xref = "x", yref = "y", 
+        #                 xshift = -12,
+        #                 font = list(color = ~clrs[yvllb]),
+        #                 xanchor = "right", showarrow = FALSE) %>%
+        layout(title = list(text = ttl, x = 0.05),
+               annotations = c(list(srcs), first_anns, last_anns),
+               legend = list(),
+               # hovermode = "x unified",
+               margin = mrg, 
+               yaxis = list(title = "", 
+                            showgrid = FALSE,
+                            showlines = FALSE,
+                            showticklabels = FALSE),
+               xaxis = list(title = xxttl, showgrid = FALSE))
+}
+
+
+

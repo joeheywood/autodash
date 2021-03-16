@@ -1,0 +1,27 @@
+{
+    "id": "655C4CAA",
+    "path": "~/indicators_dash/charts.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "2906006813",
+    "contents": "",
+    "dirty": false,
+    "created": 1612896943019.0,
+    "source_on_save": false,
+    "relative_order": 8,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Sourceij461v73ffeg",
+        "marks": "<:0,0\n>:18,-1",
+        "cursorPosition": "24,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1611845349,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1611845349,
+    "read_only": false,
+    "read_only_alternatives": []
+}

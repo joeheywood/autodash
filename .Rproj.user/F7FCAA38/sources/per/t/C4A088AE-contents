@@ -1,0 +1,21 @@
+Package: autodash
+Title: Automatically Create a Dashboard
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Joe",
+           family = "Heywood",
+           role = c("aut", "cre"),
+           email = "joe.heywood@london.gov.uk")
+Description: Create flexdashboard from database or csv files
+License: use_mit_license("Joe Heywood") 
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat,
+    gglaplot
+VignetteBuilder: 
+    knitr
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1

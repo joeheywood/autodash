@@ -1,0 +1,219 @@
+library(RSQLite)
+library(dplyr)
+library(dbplyr)
+library(glue)
+
+dsh_insert_db <- function(dat) {
+    dtst <- unique(dat$dataset)
+    if(length(dtst) != 1) {
+        stop("Needs one dataset value")
+    }
+    if(dat$xwhich[1] == 2) {
+        dat$xvardt <- as.Date(dat$xvardt)
+    }
+    exst <- file.exists("indicators.sqlite")
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    if("ind_dat" %in% dbListTables(conn)) {
+        gsql <- glue_sql("DELETE FROM ind_dat WHERE dataset = {dtst}", .con = conn)
+        qry <- dbSendQuery(conn = conn, gsql)
+        dbClearResult(qry)
+        dbAppendTable(conn, "ind_dat", dat)
+    } else {
+        dbWriteTable(conn, "ind_dat", dat)
+    }
+    # dbCommit(conn)
+    dbDisconnect(conn)
+}
+
+dsh_insert_boro_db <- function(dat) {
+    dtst <- unique(dat$dataset)
+    if(length(dtst) != 1) {
+        stop("Needs one dataset value")
+    }
+    if(dat$xwhich[1] == 2) {
+        dat$xvardt <- as.Date(dat$xvardt)
+    }
+    exst <- file.exists("indicators.sqlite")
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    if("ind_boro_dat" %in% dbListTables(conn)) {
+        gsql <- glue_sql("DELETE FROM ind_boro_dat WHERE dataset = {dtst}", .con = conn)
+        qry <- dbSendQuery(conn = conn, gsql)
+        dbClearResult(qry)
+        dbAppendTable(conn, "ind_boro_dat", dat)
+    } else {
+        dbWriteTable(conn, "ind_boro_dat", dat)
+    }
+    # dbCommit(conn)
+    dbDisconnect(conn)
+}
+
+
+
+add_metadata <- function() {
+    # flpth <- file.path(dt_pth, "Recovery Data for Dashboard.xlsx")
+    flpth <- "C:/Users/joheywood/Greater London Authority/DPA - Data monitoring/Recovery Data for Dashboard.xlsx"
+    
+    mtd <- read_excel(flpth, "Charts info") 
+    
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    dbWriteTable(conn, "mtd", mtd, overwrite = TRUE)
+    
+    dbDisconnect(conn)
+}
+
+
+chart_from_db <- function(dtst) {
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    dat <- tbl(conn, "ind_dat") %>%  filter(dataset == dtst) %>% collect()
+    m <- tbl(conn, "mtd") %>% filter(dataset == dtst) %>% collect()
+    dbDisconnect(conn)
+    if(nrow(dat) == 0 | nrow(m) != 1) {
+        print("not enough data")
+        print(glue("dat: {nrow(dat)} | meta: {nrow(m)}"))
+        return("NO METADATA")
+    }
+    
+    nms <- unique(dat$yvllb)
+    
+    vrbs <- length(nms)
+    xvar <- c("xvarchar" , "xvardt")[dat$xwhich[1]]
+    if(dat$xwhich[1] == 2) dat$xvardt <- as.Date(dat$xvardt)
+    if(vrbs == 1) {
+        if(m$bar == TRUE) {
+            plot <- dsh_bar(dat, xvar = xvar, yvar = "yval", 
+                    ttl = m$charttitle, yxttl = m$yaxistitle, 
+                    xxttl = m$xaxistitle, tckfmt = m$tickformat, 
+                    src = m$source)
+        } else if ( m$dash == TRUE) {
+            plot <- dsh_line_dash(dat, xvar, "yval", ttl = m$charttitle, mrk = m$markers, 
+                             wdth = m$linewidth,  circles = m$circles, hvr = m$hvr, 
+                             yxttl = m$yaxistitle,  xxttl = m$xaxistitle, 
+                             txt = "text",
+                             
+                             tckfmt = m$tickformat, src = m$source, link = m$link)
+        
+        } else {
+            plot <- dsh_line(dat, xvar, "yval", ttl = m$charttitle, mrk = m$markers, 
+                             wdth = m$linewidth,  circles = m$circles, hvr = m$hvr, 
+                             yxttl = m$yaxistitle,  xxttl = m$xaxistitle, 
+                             txt = "text",
+                             
+                             tckfmt = m$tickformat, src = m$source, link = m$link)
+            
+        }
+        
+        
+    } else {
+        if(m$bar == TRUE) {
+            plot <- dsh_mbar(dat, xvar = xvar, yvar = "yval", 
+                             ylabs = "yvllb", ttl = m$charttitle, 
+                             yxttl = m$yaxistitle,  xxttl = m$xaxistitle, 
+                             tckfmt = m$tickformat,  src = m$source)
+        } else if(m$dash == TRUE) {
+            plot <- dsh_mline_dash(dat, xvar, "yval", "yvllb", ttl = m$charttitle, 
+                              wdth = m$linewidth, mrk = m$markers,  
+                              circles = m$circles, hvr = m$hvr,  
+                              yxttl = m$yaxistitle,  xxttl = m$xaxistitle,  
+                              tckfmt = m$tickformat, src = m$source, 
+                              hg = m$highlight) %>%
+                layout(legend = list(y = -0.15))
+            
+        } else {
+            plot <- dsh_mline(dat, xvar, "yval", "yvllb", ttl = m$charttitle, 
+                              wdth = m$linewidth, mrk = m$markers,  
+                              circles = m$circles, hvr = m$hvr,  
+                              yxttl = m$yaxistitle,  xxttl = m$xaxistitle,  
+                              tckfmt = m$tickformat, src = m$source, 
+                              hg = m$highlight) %>%
+                layout(legend = list(y = -0.15))
+            
+        }
+        
+    }
+    plot
+}
+
+static_db_line_chart <- function(dtst) {
+    
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    dat <- tbl(conn, "ind_dat") %>%  filter(dataset == dtst) %>% collect()
+    m <- tbl(conn, "mtd") %>% filter(dataset == dtst) %>% collect()
+    dbDisconnect(conn)
+    
+    xvar <- c("xvarchar" , "xvardt")[dat$xwhich[1]]
+    if(dat$xwhich[1] == 2) dat$xvardt <- as.Date(dat$xvardt)
+    
+    static_line(dat, xvar, "yval", "ylabs", "yvllb",
+                ttl = m$charttitle, m$linewidth / 2, 
+                src = m$source)
+    
+    
+    # if(vrbs == 1) {
+    #     plot <- dsh_line(dat, xvar, "yval", ttl = m$charttitle, mrk = m$markers, 
+    #                      wdth = m$linewidth,  circles = m$circles, hvr = m$hvr, 
+    #                      yxttl = m$yaxistitle,  xxttl = m$xaxistitle, 
+    #                      tckfmt = m$tickformat, src = m$source)
+    
+}
+
+subplot_from_db <- function(dtsts, nr = 1, shrx = FALSE, shry = FALSE) {
+    
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    args <- list()
+    for(d in dtsts) {
+        dat <- tbl(conn, "ind_dat") %>%  filter(dataset == d) %>% collect()
+        m <- tbl(conn, "mtd") %>% filter(dataset == d) %>% collect()
+        xvar <- c("xvarchar" , "xvardt")[dat$xwhich[1]]
+        if(dat$xwhich[1] == 2) dat$xvardt <- as.Date(dat$xvardt)
+        args[[d]] <- list(
+            dat = dat,
+            xvar = xvar, 
+            yvar = "yval",
+            ylabs = "yvllb",
+            ttl = m$charttitle,
+            wdth = m$linewidth, 
+            mrk = m$markers,  
+            circles = m$circles, 
+            hvr = m$hvr,  
+            yxttl = m$yaxistitle,  
+            xxttl = m$xaxistitle,  
+            tckfmt = m$tickformat, 
+            src = m$source
+        )
+        
+    }
+    dbDisconnect(conn)
+    dsh_subplot(args, nr, shrx, shry)
+    
+}
+
+
+table_from_meta <- function() {
+    add_metadata()
+    conn <- dbConnect(SQLite(), "indicators.sqlite")
+    m <- tbl(conn, "mtd") %>% 
+        select(outcome, subcat, charttitle) %>% 
+        collect()
+    dbDisconnect(conn)
+    m %>%
+        mutate(
+            sublink = tolower(str_replace_all(
+                subcat, " ", "-"))
+            ) %>%
+        mutate(
+            subcat = glue("<a class='blahblah' href='#{sublink}'>{subcat}</a>")
+        ) %>%
+        select(Outcome = outcome, 
+               Category = subcat, 
+               Indicator = charttitle)
+    
+}
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,27 @@
+{
+    "id": "512FCCF8",
+    "path": "~/indicators_dash/R/sub_region_chart.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "4161535490",
+    "contents": "",
+    "dirty": false,
+    "created": 1613053947863.0,
+    "source_on_save": false,
+    "relative_order": 16,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Sourceij461v73ffeg",
+        "cursorPosition": "204,45",
+        "scrollLine": "0",
+        "marks": "<:204,32\n>:204,44"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1614707571,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1614707571,
+    "read_only": false,
+    "read_only_alternatives": []
+}

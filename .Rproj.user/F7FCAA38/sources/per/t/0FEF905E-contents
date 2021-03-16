@@ -1,0 +1,538 @@
+
+
+
+#### GVA ####
+
+ec_inc <- xlsx_cells(file.path(dt_pth, "economic_damage", "economic indicators_0121.xlsx"), "1") %>%
+    filter(is_blank == FALSE) %>%
+    behead("NNW", "indicator") %>%
+    behead("NNW", "area") %>%
+    behead("N", "measure") %>%
+    behead("WNW", "year") %>%
+    behead("W", "quarter") %>%
+    select(measure, year, quarter, val = numeric) %>%
+    pivot_wider(names_from = measure, values_from = val) %>% 
+    mutate(time = paste0(year, quarter)) %>%
+    clean_names() %>%
+    mutate(is_forecast = year == 2020 & quarter > "Q1") %>%
+    mutate(txt = case_when(
+        is_forecast == FALSE ~ "ONS figures",
+        is_forecast == TRUE ~ "GLA forecast"
+    ))
+
+
+
+# ghvr <- "GVA in %{x}: \u00A3 %{y:,.0f}M<br />%{text}<extra></extra>"
+ghvr <- "GVA in %{x}: %{y}<br />%{text}<extra></extra>"
+
+gva_plot <- plot_ly(type = "scatter", mode = "lines+markers") %>% 
+    add_trace(data = ec_inc[1:2,],
+              x = ~time, y = ~annual_growth_rate, name = "ONS figures",
+              hovertemplate = ghvr,
+              text = ~txt,
+              line = list(color = pl[1], width = 4), 
+              marker = list(color = pl[1], size = 9) )%>%
+    add_trace(data = ec_inc[2:4,],
+              x = ~time, y = ~annual_growth_rate, name = "GLA forecast",
+              hovertemplate = ghvr,
+              text = ~txt,
+              line = list(color = pl[1], width = 4, dash = 'dash'), 
+              marker = list(color = pl[1], size = 9))%>%
+    layout(title = list(text = "Real GVA annual growth rate", x = 0.01),
+           # yaxis = list(title = "\u00A3 millions"), 
+           yaxis = list(title = "%", tickformat = "%"), 
+           margin = 1,
+           xaxis = list(title = "Quarter", showgrid = FALSE))
+
+save(gva_plot, file = "output/plotly_files/gva.Rdata")
+
+#### universal credit ####
+srcs <- list(
+    x = 1, y = -0.1,
+    text = "<i>Data source:DWP</i>",
+    showarrow = F, xref='paper', yref='paper',
+    xanchor='right', yanchor='auto', xshift=0, yshift=0,
+    font=list(size=12, color="#565656")
+)
+
+uc <- xlsx_cells(file.path(dt_pth, "economic_damage", 
+                           "UC_HB_benefit_cap.xlsx"), 1) %>%
+    filter(row < 14) %>%
+    behead("NNW", "indicator_info") %>%
+    behead("N", "time") %>%
+    behead("W", "vrb")  %>%
+    mutate(time = as.Date(time)) %>%
+    select(indicator_info, time, vrb, val = numeric) %>%
+    pivot_wider(names_from = vrb, values_from = val) %>%
+    clean_names()
+
+
+uc_plot <- plot_ly(data = uc, type = "bar", x = ~time, 
+        y = ~age_65_households_on_hb, 
+        marker = list(color = pl[1]), 
+        name = "65+ HHlds on HB", showlegend = T) %>%
+    add_trace(y = ~working_age_households_on_hb_not_capped,  
+              marker = list(color = pl[2]), 
+              name = "Working age HHlds on HB not_capped", showlegend = T) %>%
+    add_trace(y = ~working_age_households_on_hb_capped_payments, 
+              marker = list(color = pl[3]), 
+              name = "Working age HHlds on HB capped", showlegend = T) %>%
+    add_trace(y = ~households_on_uc_capped_payments, 
+              marker = list(color = pl[4]), 
+              name = "HHlds on UC capped", showlegend = T) %>%
+    add_trace(y = ~households_on_uc_not_capped, 
+              marker = list(color = pl[5]), 
+              name = "HHlds on UC not capped", showlegend = T) %>%
+    add_trace(y = ~households_on_uc_not_in_payment, 
+              marker = list(color = pl[6]), 
+              name = "HHlds on UC not in payment", showlegend = T) %>%
+    layout(barmode = "stack", 
+           annotations = srcs,
+           xaxis = list(title = ""),
+           yaxis = list(title = "# of Households"),
+           margin = TRUE,
+           title = list(text = "London households on Universal Credit or Housing Benefit", 
+                        x = 0.05),
+           legend = list(orientation = 'h', x = -.2, y = -0.4) ) 
+
+save(uc_plot, file = "output/plotly_files/uc.Rdata")
+
+
+#### IN DB ####
+
+#### PMI #### 
+
+
+
+pmi <- xlsx_cells(file.path(dt_pth, "economic_damage", "economic indicators_1120.xlsx"), "2") %>%
+    filter(is_blank == FALSE) %>%
+    behead("NNW", "indicator") %>%
+    behead("N", "area") %>%
+    behead("W", "time") %>%
+    mutate(time = as.Date(time)) %>%
+    select(indicator, time, val = numeric)
+
+
+phvr <- "Business Activity Index in %{x}: %{y:.0f}%<extra></extra>"
+pmi_plot <- plot_ly(type = "scatter", mode = "lines+markers",
+                    hovertemplate = phvr,
+                    data = pmi, x = ~time, y = ~val, 
+                    line = list(color = pl[1], width = 4), 
+                    marker = list(color = "#ffffff",
+                                  size = 8,
+                                  line = list(
+                                      color = pl[1],
+                                      width = 5
+                                      
+                                  )) )%>%
+    layout(title = list(text = "PMI Business Activity Index", x = 0.05),
+           margin = 1,
+           yaxis = list(title = "Index"), 
+           xaxis = list(title = "Month", showgrid = FALSE))
+
+save(pmi_plot, file = "output/plotly_files/pmi.Rdata")
+
+#### PMI new ####
+
+pmi_new <- xlsx_cells(file.path(dt_pth, "economic_damage", 
+                                "economic indicators_1120.xlsx"), "3") %>%
+    filter(is_blank == FALSE) %>%
+    behead("NNW", "indicator") %>%
+    behead("N", "area") %>%
+    behead("W", "time") %>%
+    mutate(time = as.Date(time)) %>%
+    select(indicator, time, val = numeric)
+
+nphvr <- "New Business Activity Index in %{x}: %{y:.0f}%<extra></extra>"
+pmi_new_plot <- plot_ly(type = "scatter", mode = "lines+markers",
+                        data = pmi_new, x = ~time, y = ~val, 
+                        hovertemplate = nphvr,
+                        line = list(color = pl[2], width = 4), 
+                        marker = list(color = "#ffffff",
+                                      size = 8,
+                                      line = list(color = pl[2], width = 5)))%>%
+    layout(title = list(text = "PMI New Business Index", x = 0.05),
+           margin = 1,
+           yaxis = list(title = "Index"), 
+           xaxis = list(title = "Month", showgrid = FALSE))
+
+save(pmi_new_plot, file = "output/plotly_files/pmi_new.Rdata")
+
+#### consumer confidence ####
+
+
+cconf <-  xlsx_cells(file.path(dt_pth, "economic_damage", 
+                               "economic indicators_1120.xlsx"), "4") %>%
+    filter(is_blank == FALSE) %>%
+    behead("NNW", "indicator") %>%
+    behead("N", "area") %>%
+    behead("W", "time") %>%
+    mutate(time = as.Date(time)) %>%
+    select(indicator, time, val = numeric)
+
+cnhvr <- "Consumer confidence index for %{x}: %{y:.0f}%<extra></extra>"
+
+cconf_plot <- plot_ly(type = "scatter", mode = "lines",
+                      data = cconf, x = ~time, y = ~val, 
+                      hovertemplate = cnhvr,
+                      line = list(color = pl[1], width = 4))%>%
+    layout(title = list(text = "Consumer confidence barometer", x = 0.05),
+           margin = 1,
+           yaxis = list(title = "Index"), 
+           xaxis = list(title = "Month", showgrid = FALSE))
+
+save(cconf_plot, file = "output/plotly_files/cconf.Rdata")
+
+#### House prices #### 
+
+hsprc <- xlsx_cells(file.path(dt_pth, "economic_damage", "economic indicators_1120.xlsx"), "5") %>%
+    filter(is_blank == FALSE) %>%
+    behead("NNW", "indicator") %>%
+    behead("NNW", "area") %>%
+    behead("N", "numtype") %>%
+    behead("W", "time") %>%
+    filter(numtype == "Annual growth") %>%
+    mutate(time = as.Date(time)) %>%
+    mutate(timelab = format(time, "%b %Y")) %>%
+    select(indicator, time, timelab, val = numeric)
+
+hvr <- "% change in average housing prices<br />in %{text} was %{y:.1f}%<extra></extra>"
+hsprc_plot <- plot_ly(type = "scatter", mode = "lines+markers",
+                      data = hsprc, x = ~time, y = ~val, 
+                      text = ~timelab, hovertemplate = hvr,
+                      line = list(color = pl[1], width = 3), 
+                      marker = list(color = pl[1], size = 9)) %>%
+    layout(title = list(text = "Annual percentage change in average housing prices", x = 0.05),
+           margin = 1,
+           yaxis = list(title = "%", tickformat = "%"), 
+           xaxis = list(title = "Month", showgrid = FALSE))
+
+save(hsprc_plot, file = "output/plotly_files/hsprc.Rdata")
+
+
+#### House price expectations ####
+
+
+hsprcex <- read_excel(file.path(dt_pth, "economic_damage", "economic indicators_1120.xlsx"), "6", skip = 3) %>%
+    filter(!is.na(London)) %>%
+    mutate(mnth = as.Date(as.numeric(Month), origin = "1899-12-30")) %>%
+    mutate(timelab = format(mnth, "%b %Y"))
+
+hvr <- "House price expectations net balance<br />in %{text} was %{y:.2f}%<extra></extra>"
+
+hsprcex_plot <- plot_ly(type = "scatter", mode = "lines",
+                      data = hsprcex, x = ~mnth, y = ~London, 
+                      text = ~timelab, hovertemplate = hvr,
+                      line = list(color = pl[1], width = 7)) %>%
+    layout(title = list(text = "House prices expectations net balance", x = 0.05),
+           margin = 1,
+           yaxis = list(title = "%"), 
+           xaxis = list(title = "Month", showgrid = FALSE))
+
+save(hsprcex_plot, file = "output/plotly_files/hsprcex.Rdata")
+
+
+#### Employment ####
+
+# emp <- xlsx_cells(file.path(dt_pth, "economic_damage", "labourmarket.xlsx"), "Headline figures") %>%
+#     filter(is_blank == FALSE) %>%
+#     behead("NNW", "indicator") %>%
+#     behead("N", "area") %>%
+#     behead("W", "period") %>%
+#     separate(period, c("from", "to"), sep = " - ") %>%
+#     mutate(fromdt = paste0("1 ", gsub("(\\d+)$", "20\\1", trimws(from) ))) %>%
+#     mutate(todt = paste0("1 ", gsub("(\\d+)$", "20\\1", trimws(to) ))) %>%
+#     select(indicator, area, fromdt, todt, val = numeric) 
+# 
+# empl <- emp %>% filter(indicator == "Employment Rate (16-64)") %>%
+#     mutate(tm = as.POSIXct(todt, format = "%d %B %Y")) %>%
+#     pivot_wider(names_from = area, values_from = val)
+# 
+# 
+# hvr <- "%{y:.1f}%"
+# empl_plot <- plot_ly(data = empl, type = "scatter", mode = "lines", 
+#                      hovertemplate = hvr,
+#                      x = ~tm, y = ~London, name = "London",
+#                      line = list(color = hpl[1], width = 4)) %>%
+#     add_trace(y = ~UK, name = "UK", line = list(color = hpl[2])) %>%
+#     layout(title = list(text = "Employment rate (16+)", x = 0.05),
+#            yaxis = list(title = "%"), 
+#            hovermode = "x unified",
+#            margin = TRUE,
+#            xaxis = list(title = "", showgrid = FALSE))
+# 
+# save(empl_plot, file = "output/plotly_files/empl.Rdata")
+
+#### Unemployment ####
+
+
+unempl <- emp %>% filter(indicator == "Unemployment Rate (16+)") %>%
+    mutate(tm = as.POSIXct(todt, format = "%d %B %Y")) %>%
+    pivot_wider(names_from = area, values_from = val)
+
+hvr <- "%{y:.1f}%"
+unempl_plot <- plot_ly(data = unempl, type = "scatter", mode = "lines", 
+                       hovertemplate = hvr,
+                       x = ~tm, y = ~London, name = "London",
+                       line = list(color = hpl[1], width = 4) )%>%
+    add_trace(y = ~UK, name = "UK", line = list(color = hpl[2])) %>%
+    layout(title = list(text = "Unemployment rate (16+)", x = 0.05),
+           yaxis = list(title = "%"), 
+           hovermode = "x unified",
+           margin = TRUE,
+           xaxis = list(title = "", showgrid = FALSE))
+
+save(unempl_plot, file = "output/plotly_files/unempl.Rdata")
+
+#### Inactivity (not used) ####
+
+inact <- emp %>% filter(indicator == "Inactivity Rate (16-64)") %>%
+    mutate(tm = as.POSIXct(todt, format = "%d %B %Y")) %>%
+    pivot_wider(names_from = area, values_from = val)
+
+
+inact_plot <- plot_ly(data = inact, type = "scatter", mode = "lines", 
+                      x = ~tm, y = ~London, name = "London",
+                      line = list(color = hpl[1], width = 4)) %>%
+    add_trace(y = ~UK, name = "UK", line = list(color = hpl[2])) %>%
+    layout(title = list(text = "Inactivity rate (16-64)", x = 0.05),
+           margin = TRUE,
+           yaxis = list(title = "%"), 
+           xaxis = list(title = "", showgrid = FALSE))
+
+#### hours worked ####
+
+# hrs_wrked <- xlsx_cells(file.path(dt_pth, "economic_damage", "labourmarket.xlsx"), 
+#                         "Average hours worked") %>%
+#     filter(is_blank == FALSE) %>%
+#     behead("NNW", "figure_info") %>%
+#     behead("NNW", "indicator") %>%
+#     behead("NNW", "unit") %>%
+#     behead("N", "sex") %>%
+#     behead("W", "area") %>%
+#     select(indicator, area, unit, sex, val = numeric) 
+
+hrs_wrked <- read_excel(file.path(dt_pth, "economic_damage", "labourmarket.xlsx"), 
+                        "Average hours worked", skip = 6) %>%
+    select(region = 1, Women, Men) %>%
+    mutate(Women = as.numeric(Women), Men = as.numeric(Men)) %>%
+    filter(!is.na(Women))
+
+
+hvr <- "%{y:.1f} hours per week on average"
+hrs_wrked_plot <- plot_ly(data = hrs_wrked, type = "bar",
+                          hovertemplate = hvr,
+                          x = ~region, y = ~Women, name = "Women",
+                          marker = list(color = pl[1])
+                          ) %>%
+    add_trace(y = ~Men, name = "Men", marker = list(color = pl[2])) %>%
+    layout(title = list(text = "Average hours worked", x = 0.05),
+           margin = TRUE,
+           hovermode = "x unified",
+           yaxis = list(title = "Average weekly hours worked"), 
+           xaxis = list(title = "Region", showgrid = FALSE))
+
+save(hrs_wrked_plot, file = "output/plotly_files/hrs_wrked.Rdata")
+
+
+
+#### adult education ####
+
+dir(file.path(dt_pth, "economic_damage"))
+
+ae <- xlsx_cells(
+    file.path(dt_pth, "economic_damage", 
+              "GLA AEB 2019-2020 August - April R10 Data Tables London.xlsx"
+              ), "2.2 LAD, Volumes") %>%
+    behead("NNW", "table") %>%
+    behead("NNW", "section") %>%
+    behead("N", "vrb") %>%
+    behead("W", "LAD11NM") %>%
+    select(LAD11NM, vrb, val = numeric, table, section) %>%
+    pivot_wider(names_from = "vrb", values_from = "val") %>% clean_names() %>%
+    filter(lad11nm != "Total") %>% 
+    arrange(-learner_participation)
+
+
+ae_plot <- plot_ly(data = ae, 
+                   x = ~lad11nm, y = ~learner_participation,  
+                   type = "bar", marker = list(color = pl[1])) %>% 
+    layout(
+        title = list(text = "Adult Education: learner participaton by borough",
+                     x = 0.05),
+        margin = TRUE,
+        xaxis = list(
+               title = "",
+               categoryorder = "array",
+               categoryarray = ~learner_participation
+           ),
+           yaxis = list( title = "# of participants")
+           
+           
+    )
+    
+    
+    
+save(ae_plot, file = "output/plotly_files/ae.Rdata")
+
+
+
+#### AE - Maths/English ####
+
+aeme <- xlsx_cells(
+    file.path(dt_pth, "economic_damage", 
+              "GLA AEB 2019-2020 August - April R10 Data Tables London.xlsx"
+    ), "4.8 Eng and Maths Ent, Ach") %>%
+    behead("NNW", "table") %>%
+    behead("NNW", "section") %>%
+    behead("N", "vrb") %>%
+    behead("WNW", "subject") %>%
+    behead("W", "level") %>%
+    select(vrb, subject, level, val = numeric, table, section) %>%
+    filter(level %in% c("Level 1", "Level 2"), 
+           vrb == "Achieved" )
+
+
+aeme_plot <- plot_ly(aeme, type = "bar", x = ~level, y = ~val, color = ~subject, 
+        colors = pl[1:2]) %>%
+    layout(
+        title = list( 
+            text = "English and Maths courses, and Level 1 and 2 achievements", 
+            x = 0.05),
+        xaxis = list(title = ""),
+        yaxis = list(title = "Courses achieved"),
+        margin = TRUE
+    )
+        
+
+save(aeme_plot, file = "output/plotly_files/aeme.Rdata")
+
+#### AE - low wage ####
+
+
+aelw <- xlsx_cells(
+    file.path(dt_pth, "economic_damage", 
+              "GLA AEB 2019-2020 August - April R10 Data Tables London.xlsx"
+              ), "4.3 Low Wage by Level, Volumes") %>%
+    behead("NNW", "table") %>%
+    behead("NNW", "variable") %>%
+    behead("N", "category") %>%
+    behead("WNW", "wage_category") %>%
+    behead("W", "level") %>%
+    filter(category == "Learner Participation", level == "Total") %>%
+    select(category, wage_category, level, numeric) %>%
+    mutate(rn = row_number())
+
+
+
+aelw_plot <- plot_ly(data = aelw, 
+                   x = ~wage_category, y = ~numeric,  
+                   type = "bar", marker = list(color = pl[1])) %>% 
+    layout(
+        title = list(text = "Adult Education: Learners in receipt of low wages",
+                     x = 0.05),
+        margin = TRUE,
+        xaxis = list(
+            title = "",
+            categoryorder = "array",
+            categoryarray = ~rn
+        ),
+        yaxis = list( title = "# of participants")
+        
+        
+    )
+
+
+
+save(aelw_plot, file = "output/plotly_files/aelw.Rdata")
+
+#### International Students #### 
+
+intvst <- xlsx_cells(file.path(dt_pth, "economic_damage", "economic indicators_1120.xlsx"), "8") %>%
+    behead("NNW", "variable") %>%
+    behead("N","year") %>%
+    select(variable, year, val = numeric) %>%
+    filter(!is.na(val))
+
+intvst_plot <- plot_ly(data = intvst, type = "bar", 
+        marker = list(color = pl[1]), 
+        x = ~year, y = ~val) %>%
+    layout(
+        title = list(text = "Number of international students at London universities",
+                     x = 0.05),
+        margin = TRUE,
+        xaxis = list(
+               title = "Time"
+           ),
+           yaxis = list( title = "Number")
+           
+           
+    )
+    
+save(intvst_plot, file = "output/plotly_files/intvst.Rdata")
+
+
+#### London living wage ####
+
+
+llw <- read_excel(file.path(dt_pth, "economic_damage", "employees-earning-below-llw-ft-pt-sex.xlsx"), "London" ) %>%
+    clean_names() %>% filter(working_pattern == "Any working pattern") %>%
+    select(year, sex,
+           emps = number_of_employee_jobs_below_the_london_living_wage) %>%
+    filter(year > 2011) %>%
+    pivot_wider(names_from = sex, values_from = emps) %>%
+    clean_names() 
+
+
+
+                      
+
+llw_plot <- plot_ly(type = "scatter", mode = "lines+markers",
+                      data = llw, x = ~year, y = ~male, name = "Male",
+                      line = list(color = hpl[1], width = 5), 
+                      marker = list(color = hpl[1], size = 10)) %>%
+    add_trace(y = ~female, name = "Female", 
+                      line = list(color = hpl[2], width = 5), 
+                      marker = list(color = hpl[2], size = 10)) %>%
+    layout(title = list(text = "Number of emlployee jobs below the London Living Wage", x = 0.05),
+           margin = 1,
+           hovermode = "x unified",
+           yaxis = list(title = "# of employees"), 
+           xaxis = list(title = "Year", showgrid = FALSE))
+
+save(llw_plot, file = "output/plotly_files/llw.Rdata")
+
+#### Insecure Work ####
+
+
+inswk <- xlsx_cells(file.path(dt_pth, "economic_damage", "insecure-employment.xlsx"), 2) %>%
+    behead("NNW", "region") %>%
+    behead("NNW", "vrb") %>%
+    behead("N", "valtype") %>%
+    behead("W", "year") %>%
+    filter(vrb == "Percent employed in insecure employment",
+           valtype == "%",
+           year > 2011) %>%
+    select(year, region, val = numeric) %>%
+    pivot_wider(names_from = "region", values_from = "val")
+    
+    
+hvr <- "%{y:.1f}% in insecure employment"
+inswk_plot <- plot_ly(type = "scatter", mode = "lines+markers",
+                      data = inswk, x = ~year, y = ~London, name = "London",
+                      hovertemplate = hvr,
+                      line = list(color = hpl[1], width = 4), 
+                      marker = list(color = hpl[1], size = 8)) %>%
+    add_trace(y = ~UK, name = "UK", 
+                      line = list(color = hpl[2], width = 4), 
+                      marker = list(color = hpl[2], size = 8)) %>%
+    layout(title = list(text = "Percent employed in insecure employment", x = 0.05),
+           margin = TRUE,
+           hovermode = "x unified",
+           yaxis = list(title = "%", range = c(0, 11)), 
+           xaxis = list(title = "Year", showgrid = FALSE))
+
+save(inswk_plot, file = "output/plotly_files/inswk.Rdata")
+
+
+

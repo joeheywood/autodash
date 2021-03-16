@@ -1,0 +1,28 @@
+{
+    "id": "E233E0A1",
+    "path": "~/resilience_dashboard/R/dsh_sub_region_line.R",
+    "project_path": "R/dsh_sub_region_line.R",
+    "type": "r_source",
+    "hash": "2656387563",
+    "contents": "",
+    "dirty": false,
+    "created": 1613053569463.0,
+    "source_on_save": false,
+    "relative_order": 15,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Sourceij461v73ffeg",
+        "cursorPosition": "73,63",
+        "scrollLine": "0",
+        "marks": "<:47,7\n>:47,40"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1615287405,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1615287405004,
+    "read_only": false,
+    "read_only_alternatives": []
+}
