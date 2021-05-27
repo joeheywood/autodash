@@ -27,7 +27,7 @@
 dsh_sub_region_line <- function(dat, ttl, xlb = "", ylb = "", src = "", 
                                 lnk = "", hv = "%{y}") {
     
-    cdat <- dat %>% left_join(shortens, by = "LAD11NM") %>%
+    cdat <- dat %>% left_join(shortens, by = c("lad11nm" = "LAD11NM")) %>%
         mutate(short = stringr::str_pad(short, 15, "right", " ")) %>%
         filter(!is.na(subregion)) 
     

@@ -10,7 +10,10 @@
 #' chart_from_data("unempl")
 #' 
 #' @import dplyr
+#' @import yaml
 #' @import RSQLite
+#' @import RPostgres
+#' @import here
 #' @import DBI
 #' 
 chart_from_data <- function(dtst) {
@@ -72,14 +75,17 @@ chart_from_data <- function(dtst) {
 get_data_for_dataset <- function(dtst) {
     ## get data sqlite, csv or RData files depeneding on what is 
     ## in the "dash_data" environment variable
-    fl <- Sys.getenv("DASH_DATAPATH")
-    fltype <- tools::file_ext(fl)
-    
-    if(fltype == "sqlite") {
-        return(data_from_sqlite(dtst = dtst, fl = fl))
-    } else if(fltype == "csv") {
-        return(data_from_csv(dtst, fl))
-    }
+    # cnfg <- yaml::yaml.load_file(here("rconfig.yml"))
+    # 
+    # fl <- Sys.getenv("DASH_DATAPATH")
+    # fltype <- tools::file_ext(fl)
+    # 
+    # if(fltype == "sqlite") {
+    #     return(data_from_sqlite(dtst = dtst, fl = fl))
+    # } else if(fltype == "csv") {
+    #     return(data_from_csv(dtst, fl))
+    # }
+    return(data_from_postgres(dtst))
 }
 
 #' get data for single indicator from sqlite database
@@ -98,6 +104,35 @@ data_from_sqlite <- function(dtst, fl) {
         collect()
     dbDisconnect(conn)
     list(dat = dat, meta = m, sub = sub)
+}
+
+data_from_postgres <- function(dts) {
+    conn <- rdb_connect()
+    dat <- tbl(conn, "ind_dat") %>%  
+        filter(dataset == dts) %>% 
+        collect()
+    m <- tbl(conn, "mtd") %>% 
+        filter(dataset == dts) %>% 
+        collect()
+    sub <- tbl(conn, "ind_boro_dat") %>% 
+        filter(dataset == dts) %>% 
+        collect()
+    dbDisconnect(conn)
+    list(dat = dat, meta = m, sub = sub)
+}
+
+rdb_connect <- function() {
+    # configdir <- Sys.getenv("RDCONFIG")
+    cnfg <- yaml::yaml.load_file(here("rconfig.yml"))
+    conSuper <- dbConnect( RPostgres::Postgres(),
+                           dbname = cnfg$dbname,
+                           host = cnfg$host,
+                           port = cnfg$port,
+                           password = cnfg$password,
+                           user = cnfg$user )
+    
+    conSuper
+    
 }
 
 #' get data for single indicator from csv files
