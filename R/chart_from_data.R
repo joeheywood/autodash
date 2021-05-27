@@ -16,12 +16,20 @@
 #' @import here
 #' @import DBI
 #' 
-chart_from_data <- function(dtst) {
+chart_from_data <- function(dtst, txtfun = NULL) {
     # print(dtst)
     x <- get_data_for_dataset(dtst)
     dat <- x$dat
     m <- x$m
     sub <- x$sub
+    
+    if(is.null(txtfun)) {
+        if(nrow(dat) > 0) dat$txt <- ""
+        if(nrow(sub) > 0) sub$txt <- ""
+    } else {
+        if(nrow(dat) > 0) dat$txt <- txtfun(dat)
+        if(nrow(sub) > 0) sub$txt <- txtfun(sub)
+    }
     
     if((nrow(dat) == 0 & nrow(sub) == 0)| nrow(m) == 0) {
         return(glue("Not enough data! Data: {nrow(dat)} Meta: {nrow(m)} 
@@ -32,7 +40,8 @@ chart_from_data <- function(dtst) {
         return(
             dsh_sub_region_line(sub, m$charttitle, xlb = m$xaxistitle, 
                                 ylb = m$yaxistitle, src = m$source,  
-                                lnk = m$link, hv = m$hvr) )
+                                lnk = m$link, hv = m$hvr, 
+                                tckfmt = m$tickformat ) )
     }  
 
     
@@ -99,8 +108,8 @@ data_from_sqlite <- function(dtst, fl) {
     m <- tbl(conn, "mtd") %>% 
         filter(dataset == dtst) %>% 
         collect()
-    sub <- tbl(conn, "ind_sub_dat") %>% 
-        filter(dtst == dtst) %>% 
+    sub <- tbl(conn, "ind_boro_dat") %>% 
+        filter(dataset == dtst) %>% 
         collect()
     dbDisconnect(conn)
     list(dat = dat, meta = m, sub = sub)

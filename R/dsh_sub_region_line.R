@@ -25,11 +25,12 @@
 #' @import purrr
 
 dsh_sub_region_line <- function(dat, ttl, xlb = "", ylb = "", src = "", 
-                                lnk = "", hv = "%{y}") {
+                                lnk = "", hv = "%{y}", tckfmt = "") {
     
     cdat <- dat %>% left_join(shortens, by = c("lad11nm" = "LAD11NM")) %>%
         mutate(short = stringr::str_pad(short, 15, "right", " ")) %>%
         filter(!is.na(subregion)) 
+    
     
     srctxt <- ifelse(src == "", "", paste0("<i>Data source: ", src, "</i>"))
     
@@ -72,7 +73,7 @@ dsh_sub_region_line <- function(dat, ttl, xlb = "", ylb = "", src = "",
                      )  
     fig <- plot_ly(type = "scatter", mode = "lines",  visible = TRUE,
                    data = cdat %>% filter(subregion == "London"), 
-                   x = ~x, y = ~y,colors = clrs,
+                   x = ~x, y = ~y,colors = clrs, text = ~txt,
                    hovertemplate = hv,
                    line = list(width = 4), color = ~short) 
     ix <- 2
@@ -92,8 +93,7 @@ dsh_sub_region_line <- function(dat, ttl, xlb = "", ylb = "", src = "",
         # print(vsb)
         fig <- fig %>% add_lines(
             data = subdats[[r]],
-            x = ~x, y = ~y, visible = show, color = ~short 
-            ) 
+            x = ~x, y = ~y, visible = show, color = ~short, text = ~txt) 
         updmns[[1]]$buttons[[ix]] <- list( 
             label = r, 
             method = "update", 
@@ -119,7 +119,7 @@ dsh_sub_region_line <- function(dat, ttl, xlb = "", ylb = "", src = "",
             margin = TRUE,
             annotations = add_source(src, lnk),
             xaxis = list(title = xlb, showgrid = FALSE),
-            yaxis = list(title = ylb)
+            yaxis = list(title = ylb, tickformat = tckfmt)
         )
             
     
