@@ -1,0 +1,89 @@
+library(zoo)
+source("charts.R")
+source("R/build_db.R")
+
+## this is too big!
+google_act_fl <- "../londonCV19dash2/data/updated/raw/google_activity_raw_2021-02-05.csv"
+
+
+# dat <- fread(google_act_fl) %>%
+#     mutate(res_roll = rollapply(residential_percent_change_from_baseline,
+#                                 7, 'mean', align = 'right', fill = NA)) %>%
+#     mutate(transit_roll = rollapply(transit_stations_percent_change_from_baseline,
+#                                 7, 'mean', align = 'right', fill = NA)) %>%
+#     filter(date > as.Date("2020-02-24"))
+
+dat <- fread(google_act_fl) %>% 
+    filter(country_region == "United Kingdom", 
+           sub_region_1 == "Greater London") %>%
+    mutate(wk = ceiling_date(date, "week")) %>%
+    group_by(wk, sub_region_2) %>%
+    summarise(res_wk = mean(residential_percent_change_from_baseline, 
+                           na.rm = TRUE),
+              transit_wk = mean(transit_stations_percent_change_from_baseline,
+                               na.rm = TRUE)) %>%
+    ungroup()
+
+
+ldat <- dat %>% filter(nchar(sub_region_2) == 0) 
+
+dat <- dat %>% filter(nchar(sub_region_2) > 0) %>%
+    mutate(LAD11NM = str_replace(
+        sub_region_2, " and ", " & ")) %>%
+    mutate(LAD11NM = str_replace(
+        LAD11NM, "((London|Royal) Borough|City) of ", ""))
+
+
+    
+
+
+
+
+# gretail <- sub_region_chart(dat, 
+#                  "date", 
+#                  "retail_and_recreation_percent_change_from_baseline", 
+#                  "Retail and recreation", src="Google mobility", 
+#                  ldat = ldat, xlb = "Date", ylb = "% change since last year") %>% 
+#     layout(xaxis = list(hoverformat = "%a %d %b '%y"))
+# 
+# ggroc <- sub_region_chart(dat, 
+#                  "date", 
+#                  "grocery_and_pharmacy_percent_change_from_baseline", 
+#                  "Grocery and pharmacy", src="Google mobility",
+#                  ldat = ldat, xlb = "Date", ylb = "% change since last year") %>% 
+#     layout(xaxis = list(hoverformat = "%a %d %b '%y"))
+# 
+# gpark <- sub_region_chart(dat, 
+#                  "date", 
+#                  "parks_percent_change_from_baseline", 
+#                  "Parks", src="Google mobility",
+#                  ldat = ldat, xlb = "Date", ylb = "% change since last year") %>% 
+#     layout(xaxis = list(hoverformat = "%a %d %b '%y"))
+
+gtransit <- sub_region_chart(dat, 
+                 "wk",
+                 "transit_wk", "Passengers with Android phones in transit stations compared to Jan 2020", 
+                 ldat = ldat, xlb = "Date", ylb = "% change since last year",
+                 src = "Google Mobility", lnk = "https://www.google.com/covid19/mobility/",
+                 hv = "%{y:.1f}%") %>% 
+    layout(xaxis = list(hoverformat = "%a %d %b '%y"))
+
+gworkplaces <- sub_region_chart(dat, 
+                 "wk", 
+                 "res_wk", 
+                 "People with Androids going to workplaces or working from home, compared to Jan 2020", 
+                 src="Google mobility",  lnk = "https://www.google.com/covid19/mobility/",
+                 ldat = ldat, hv = "%{y:.1f}%") %>% 
+    layout(xaxis = list(hoverformat = "%a %d %b '%y"))
+
+
+# gresroll <- sub_region_chart(dat,  "date", "res_roll",  "Residential",  
+#                              src="Google mobility",  
+#                              ldat = ldat, xlb = "Date", 
+#                              ylb = "% change since last year") %>% 
+#     layout(xaxis = list(hoverformat = "%a %d %b '%y"))
+# 
+# save(gretail, ggroc, gpark, gtransit, gworkplaces, gresroll, 
+#      file = "output/plotly_files/google_mob.Rdata")
+
+save(gtransit, gworkplaces, file = "output/plotly_files/google_mob.Rdata")

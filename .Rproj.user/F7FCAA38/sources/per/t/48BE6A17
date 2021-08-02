@@ -1,0 +1,28 @@
+{
+    "id": "48BE6A17",
+    "path": "~/resilience_dashboard/R/add_source.R",
+    "project_path": "R/add_source.R",
+    "type": "r_source",
+    "hash": "193902089",
+    "contents": "",
+    "dirty": false,
+    "created": 1612948304703.0,
+    "source_on_save": false,
+    "relative_order": 10,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "15,14",
+        "scrollLine": "0",
+        "marks": "<:7,0\n>:7,0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1612949945,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1612949945925,
+    "read_only": false,
+    "read_only_alternatives": []
+}

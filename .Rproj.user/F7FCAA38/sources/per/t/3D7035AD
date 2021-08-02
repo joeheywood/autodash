@@ -1,0 +1,28 @@
+{
+    "id": "3D7035AD",
+    "path": "~/resilience_dashboard/R/dsh_mbar.R",
+    "project_path": "R/dsh_mbar.R",
+    "type": "r_source",
+    "hash": "2165888396",
+    "contents": "",
+    "dirty": false,
+    "created": 1613037884459.0,
+    "source_on_save": false,
+    "relative_order": 12,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "33,4",
+        "scrollLine": "0",
+        "marks": "<:52,-1\n>:52,0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1613577555,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1613577555511,
+    "read_only": false,
+    "read_only_alternatives": []
+}

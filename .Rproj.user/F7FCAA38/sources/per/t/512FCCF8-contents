@@ -1,0 +1,348 @@
+
+crm_dat <- read_excel(file.path(dt_pth, "support_communities", 
+                                "Crime Data-week 48-CV-19.xlsx")) %>%
+    clean_names() %>% 
+    select(week_end = 1, LAD11NM = ocu_name, everything() ) %>%
+    mutate(week_end = as.Date(week_end))   
+
+
+l_crm <- crm_dat %>%
+    group_by(week_end, LAD11NM)
+
+
+# unique(crm_dat$LAD11NM)
+
+# shortens <- data.frame(short = unique(crm_dat$LAD11NM), long = unique(crm_dat$LAD11NM), 
+#                        stringsAsFactors = F)
+# fwrite(shortens, "data/shortens.csv")
+
+shortens <- fread("data/shortens.csv") %>% 
+    group_by(subregion) %>% 
+    mutate(ix = row_number()) %>%
+    ungroup() %>%
+    arrange(LAD11NM)
+
+
+
+
+sub_region_chart <- function(dat, x, y, ttl, xlb = "", ylb = "", transf = sum,
+                             ldat = NULL, src = "", lnk = "", hv = "%{y}") {
+    
+    
+    dat$x <- dat[[x]]
+    dat$y <- dat[[y]]
+    cdat <- dat %>% left_join(shortens, by = "LAD11NM") %>%
+        mutate(short = str_pad(short, 15, "right", " ")) %>%
+        filter(!is.na(subregion)) 
+    
+    srctxt <- ifelse(src == "", "", paste0("<i>Data source: ", src, "</i>"))
+    
+    srcs <- list(
+        x = 1, y = -0.1,
+        text = srctxt,
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=12, color="#565656")
+    )
+    
+    rgns <- c("Central", "North", "East1", "East2", "South", "West")
+    
+    pl <- gla_pal(n = 9)
+    clrs <- pl[shortens$ix ]
+    
+    subdats <- map(rgns, function(rgn) {
+        cdat %>% filter(subregion == rgn)
+    }) %>% setNames(rgns)
+    
+    if(is.null(ldat)) {
+        ldn_d  <- cdat %>% group_by(x) %>% 
+            summarise(y = transf(y, na.rm = TRUE)) %>% ungroup() %>%
+            mutate(short = "London")
+    } else {
+        ldn_d = ldat %>%
+            mutate(short = "London") 
+        ldn_d$x <- ldn_d[[x]]
+        ldn_d$y <- ldn_d[[y]]
+    }
+    
+    updmns <-  list( list( active = 0, x = 0,  y = 1.3, 
+                           buttons = list(
+                               list(
+                                   label = "London",
+                                   method = "update",
+                                   args = list(
+                                       list(visible = c(TRUE, rep(FALSE, 32))),
+                                       list(title = paste0(ttl, " (London)")) )
+                                   
+                                   )
+                               )
+                           )
+                     )  
+    fig <- plot_ly(type = "scatter", mode = "lines",  visible = TRUE,
+                   data = ldn_d, x = ~x, y = ~y,colors = clrs,
+                   hovertemplate = hv,
+                   line = list(width = 4), color = ~short) 
+    ix <- 2
+    done <- 1
+    show <- FALSE
+    
+    
+    ## start with london?
+    
+    for(r in rgns) {
+        nboros <- length(unique(subdats[[r]]$short))
+        # print("-----------------------------")
+        # print(paste0(nboros, " | ", r))
+        # print(unique(subdats[[r]]$short))
+        togo <- 33 - nboros - done 
+        vsb <- c(rep(FALSE, done), rep(TRUE, nboros), rep(FALSE, togo))  
+        # print(vsb)
+        fig <- fig %>% add_lines(
+            data = subdats[[r]],
+            x = ~x, y = ~y, visible = show, color = ~short 
+            ) 
+        updmns[[1]]$buttons[[ix]] <- list( 
+            label = r, 
+            method = "update", 
+            args = list( 
+                list(visible = vsb),
+                list(title = paste0(ttl, " (Sub-region: ", r, ")"))
+            )
+        )
+        
+       ix <- ix + 1 
+       done <- done + nboros
+       show <- FALSE
+    }
+    
+    fig %>%
+        layout(
+            updatemenus = updmns,
+            margin = TRUE,
+            hovermode = "x unified",
+            title = list(text = paste0(ttl, " (London)"), 
+                         x = 0.1),
+            legend = list(width = 80),
+            margin = TRUE,
+            annotations = add_source(src, lnk),
+            xaxis = list(title = xlb, showgrid = FALSE),
+            yaxis = list(title = ylb)
+        )
+            
+    
+    
+}
+
+
+
+sbr <- sub_region_chart(crm_dat, "week_end", "tno_offs", 
+                        "Total Notifiable Offences", 
+                        xlb = "Week ending", "# of offences")
+
+save(sbr, file = "output/plotly_files/sbr.Rda")
+
+
+#### people on uc ####
+
+pop <- read_excel(file.path(dt_pth, 
+                            "economic_damage", 
+                            "housing_led_2018_base.xlsx"), "Persons") %>%
+    filter(str_detect(gss_code, "E090"),
+           age %in% 18:65) %>%
+    group_by(gss_code, borough) %>%
+    summarise(tot = sum(`2020`)) %>%
+    mutate(LAD11NM = str_replace(borough, " and ", " & "))
+
+fl <- "Q:/Teams/Intelligence Unit - General/Recovery Dashboard/labourmarket - Feb copy V2.xlsx"
+
+# dat <- xlsx_cells(file.path(dt_pth, 
+#                             "economic_damage", 
+#                             "statxplore_uc_totals.xlsx"), "Total" ) %>%
+dat <- xlsx_cells(fl, "people on UC - borough" ) %>%
+    filter(row > 9) %>%
+    behead("N", "month") %>%
+    behead("W", "blank") %>%
+    behead("W", "LAD11NM") %>%
+    mutate(date = as.Date(paste0("1 ", month), format = "%d %B %Y"),
+           LAD11NM = str_replace(LAD11NM, " and ", " & ")) %>%
+    filter(date > as.Date("2018-12-31")) %>%
+    select(month, LAD11NM, numeric, date) %>%
+    left_join(pop %>% select(LAD11NM, tot)) %>% ## ugh. where's this?
+    mutate(rate = numeric/tot)
+
+
+ldat <- dat %>%
+    filter(LAD11NM != "Total") %>%
+    group_by(date) %>%
+    summarise(rate = sum(numeric, na.rm = TRUE) / sum(tot, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(short = "London") %>%
+    select(date, rate)
+
+
+
+### for db ###
+
+# ## to add to db?
+# clmts_db <- bind_rows(
+#     dat %>%
+#         filter(!LAD11NM %in% c("...35", "London")) %>%
+#         mutate(dtst = "clmts") %>%
+#         select(dtst, x = date, y = value, LAD11NM),
+#     jsa_l %>% mutate(dtst = "clmts") %>%
+#         select(dtst, x = date, y = value, LAD11NM = short),
+# )
+# 
+# conn <- dbConnect(SQLite(), "indicators.sqlite")
+# DBI::dbWriteTable(conn, name = "ind_sub_dat", clmts_db)
+# dbDisconnect(conn)
+
+
+uc <- sub_region_chart(dat, "date", "rate", 
+                       ttl = "Proportion of Londoners on Universal Credit or housing benefit", 
+                       transf = mean, ldat  = ldat, src = "DWP") %>% 
+    layout(xaxis = list(title = "Month"), 
+           yaxis = list(title = "% aged 18-65", tickformat= ".1%")) 
+
+
+save(uc, file = "output/plotly_files/uc_sub.Rda")
+
+
+
+#### Claimants ####
+fl <- "Q:/Teams/Intelligence Unit - General/Recovery Dashboard/labourmarket - Feb copy V2.xlsx"
+
+cc <- xlsx_cells(fl, "Claimant count - borough") %>%
+    filter(row > 8) %>%
+    behead("N", "LAD11NM") %>%
+    behead("W", "month")  %>%
+    mutate(date = as.Date(paste0("1 ", month), format = "%d %B %Y"),
+           LAD11NM = str_replace(LAD11NM, " and ", " & ")) %>%
+    filter(date > as.Date("2018-12-31")) %>%
+    select(month, LAD11NM, numeric, date) %>%
+    left_join(pop %>% select(LAD11NM, tot)) 
+    
+
+get_furlough <- function(mnth) {
+    mnth <- sprintf("%02d", mnth)
+    print(mnth)
+    flpth <-file.path(dt_pth, "economic_damage", "furlough", 
+                      paste0("CJRS_2020_", mnth, ".xlsx"))
+    
+    xlsx_cells(flpth, sheet = "11. Local Authority and gender") %>%
+        filter(row > 2) %>%
+        behead("NNW", "category") %>%
+        behead("N", "vrb") %>%
+        behead("W", "BLANK") %>%
+        behead("W", "LAD11CD") %>%
+        behead("W", "LAD11NM") %>%
+        filter(vrb == "Employments furloughed", 
+               category == "Total",
+               str_detect(LAD11CD, "E090")) %>%
+        select(category, vrb, LAD11CD, LAD11NM, numeric, character) %>%
+        mutate(month = as.Date(paste0("2020-", mnth, "-01")))
+    
+}
+
+
+furlough_dat <- map(11:10, get_furlough )
+
+
+
+
+lmkt <- file.path(dt_pth, "economic_damage", "labourmarket - Dec2020.xlsx")
+
+
+
+jsa <- read_excel(fl, sheet = "Claimant count - borough", skip = 53) %>%
+    filter(!is.na(Brent)) %>%
+    pivot_longer(-Date ) %>%
+    select(Date, LAD11NM = name, value) %>%
+    mutate(date = as.Date(paste0("1 ", Date), format = "%d %B %Y"),
+           LAD11NM = str_replace(LAD11NM, " and ", " & "))
+
+jsa_l <- read_excel(fl, sheet = "Claimant count", skip = 10) %>%
+    select(Date = 1, value = 5) %>%
+    filter(!is.na(value)) %>%
+    mutate(date = as.Date(paste0("1 ", Date), format = "%d %B %Y"),
+          short = "London"  ) %>%
+    select(date, value, short)
+    
+
+
+# ## to add to db?
+# clmts_db <- bind_rows(
+#     jsa %>%
+#         filter(!LAD11NM %in% c("...35", "London")) %>%
+#         mutate(dtst = "clmts") %>%
+#         select(dtst, x = date, y = value, LAD11NM),
+#     jsa_l %>% mutate(dtst = "clmts") %>%
+#         select(dtst, x = date, y = value, LAD11NM = short),
+# )
+# 
+# conn <- dbConnect(SQLite(), "indicators.sqlite")
+# DBI::dbWriteTable(conn, name = "ind_sub_dat", clmts_db)
+# dbDisconnect(conn)
+    
+
+
+
+jsa_b <- sub_region_chart(as.data.frame(jsa), "date", "value", 
+                          "Claimant Rate (% aged 16-64), seasonally adjusted", 
+                 transf = mean, ldat = jsa_l, src = "ONS (via NOMIS)") %>% 
+    layout(xaxis = list(title = "Month"), 
+           yaxis = list(title = "% aged 16-64"))
+    
+
+save(jsa_b, file = "output/plotly_files/jsa_b.Rda")
+
+## chris' new file
+# fl <- "Q:/Teams/Intelligence Unit - General/Recovery Dashboard/labourmarket - Dec copy V4.xlsx"
+
+frl <- read_excel(fl, sheet = "CJRS - borough", skip = 9) %>% 
+    clean_names() %>%
+    filter(!is.na(take_up_rate)) %>%
+    select(LAD11NM = 1, furloughed = 2, rate = 3) %>%
+    mutate(
+        cll = ifelse(LAD11NM %in% c("London", "United Kingdom"), 2, 1)
+    ) %>% arrange(desc(rate)) 
+    
+    
+frl_plot <- plot_ly(data = as.data.frame(frl), type = "bar", 
+                    x = ~LAD11NM, y = ~rate, marker = list(color = ~pl[cll])) %>% 
+    layout(title = list(text = "Employments furloughed (% of eligible employments) at 31 December, by borough", x = 0.05),
+       margin = TRUE,
+       yaxis = list(title = "Take up rate (%)", tickformat = "%"), 
+       xaxis = list(title = "Borough", 
+                    showgrid = FALSE,
+                    categoryorder = "array",
+                    categoryarray = ~rate
+                    
+                    ))
+
+save(frl_plot, file = "output/plotly_files/frl.Rdata")
+
+
+seiss <- read_excel(fl, sheet = "SEISS - borough", skip = 9) %>% 
+    clean_names() %>%
+    filter(!is.na(total_take_up_rate)) %>%
+    select(LAD11NM = 1, seiss = 2, rate = 3) %>%
+    mutate(
+        cll = ifelse(LAD11NM %in% c("London", "United Kingdom"), 2, 1)
+    ) %>% arrange(desc(rate)) 
+
+seiss_plot <- plot_ly(data = as.data.frame(seiss), type = "bar", 
+                    x = ~LAD11NM, y = ~rate, marker = list(color = ~pl[cll])) %>% 
+    layout(title = list(text = "SEISS claims as a proportion of the potentially eligible population at 31 October 2020", x = 0.05),
+           margin = TRUE,
+           yaxis = list(title = "Take up rate (%)", tickformat = "%"), 
+           xaxis = list(title = "Borough", 
+                        showgrid = FALSE,
+                        categoryorder = "array",
+                        categoryarray = ~rate
+                        
+           ))
+
+
+save(seiss_plot, file = "output/plotly_files/siess.Rdata")
+

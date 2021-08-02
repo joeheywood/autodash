@@ -1,0 +1,144 @@
+---
+title: "dev_history.Rmd for working package"
+author: "Sébastien Rochette"
+date: "23/01/2021"
+output: html_document
+---
+
+```{r development, include=FALSE}
+library(testthat)
+```
+
+<!--
+# Description of your package
+
+This will fill the description of your package.
+Add this chunk using `fusen::description_chunk()`
+--> 
+
+```{r description}
+# Describe your package
+fusen::fill_description(
+  fields = list(
+    Title = "Dashboard",
+    Description = "Create flexdashboard from database or CSV files",
+    `Authors@R` = c(
+      person("Joe", "Heywood", email = "joe.heywood@london.gov.uk", role = c("aut", "cre"))
+    )
+  )
+)
+# Define License with use_*_license()
+usethis::use_mit_license("Sébastien Rochette")
+```
+
+# Calculate the median of a vector
+
+```{r function}
+#' Generates dashboard RMarkdown file
+#'
+#' @param drct Path to output file 
+#'
+#' @param knitit Logical - if TRUE, knits the generated RMarkdown file
+
+#' @return
+#' TRUE if it worked
+#' @export
+#'
+#' @examples
+generate_dashboard <- function(drct, knitit = FALSE) {
+  print("generate")
+}
+```
+
+```{r examples}
+
+path_to_output_file <- "path/to/output/dash.Rmd"
+
+generate_dashboard(path_to_output_file, TRUE)
+
+## generates 
+
+```
+
+```{r tests}
+test_that("my_median works properly and show error if needed", {
+  expect_error(generete_dashboard(12))
+})
+```
+
+# Calculate the mean of a vector
+## Use sub-functions in the same chunk
+
+```{r function-1}
+#' Chart from data - produces chart for single indicator
+#'
+#' @param x Vector of Numeric values
+#' @inheritParams stats::median
+#'
+#' @return
+#' Median of vector x
+#' @export
+#'
+#' @examples
+chart_from_data <- function(dtst) {
+  print(dtst)
+}
+
+#' get data for single indicator
+#' @param dtst Character string of dataset primary key
+get_data_for_dataset <- function(x, na.rm = TRUE) {
+  ## get data sqlite, csv or RData files depeneding on what is 
+  ## in the "dash_data" environment variable
+}
+
+#' get data for single indicator from sqlite database
+#' @param dtst Character string of dataset primary key
+#' @param fl Path location of sqlite file
+data_from_sqlite <- function(dtst, fl) {
+}
+
+#' get data for single indicator from csv files
+#' @param dtst Character string of dataset primary key
+#' @param dr Path where csv files are kept
+data_from_csv <- function(x, na.rm = TRUE) {
+}
+
+#' get data for single indicator from RData files
+#' @param dtst Character string of dataset primary key
+#' @param fl Path location of RData file
+data_from_csv <- function(x, na.rm = TRUE) {
+}
+
+```
+
+```{r examples-1}
+chart_from_data("unemp")
+
+```
+
+```{r tests-1}
+test_that("my_median works properly and show error if needed", {
+})
+```
+
+# There can be development actions
+
+These will be included in the `dev_history.R` file of your package, but won't be direct part of it.
+
+```{r development-1, eval=FALSE}
+# Run but keep eval=FALSE to avoid infinite loop
+# Execute in the console directly
+fusen::inflate(rmd = "dev/dev_history.Rmd")
+```
+
+
+# Inflate your package
+
+You're one inflate from paper to box.
+Build your package from this very Rmarkdown using `fusen::inflate()`
+
+- Verify your `"DESCRIPTION"` file has been updated
+- Verify your function is in `"R/"` directory
+- Verify your test is in `"tests/testthat/"` directory
+- Verify this Rmd appears in `"vignettes/"` directory
+
