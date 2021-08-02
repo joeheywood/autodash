@@ -14,8 +14,9 @@
 #' @import RSQLite
 #' @import RPostgres
 #' @import here
-#' @import DBI
 #' 
+
+ 
 chart_from_data <- function(dtst, txtfun = NULL) {
     # print(dtst)
     x <- get_data_for_dataset(dtst)
@@ -48,8 +49,10 @@ chart_from_data <- function(dtst, txtfun = NULL) {
     if(dat$xwhich[1] == 2) {
         dat$xvar <- as.Date(dat$xvardt,
                               origin = as.Date("1970-01-01"))
+        dat <- dat %>% arrange(xvardt)
     } else {
         dat$xvar <- as.character(dat$xvarchar)
+        dat <- dat %>% arrange(xvarchar)
     }
     
     

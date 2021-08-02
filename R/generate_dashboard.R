@@ -1,21 +1,28 @@
-#' Generates dashboard RMarkdown file
+#' Generates dashboard from RMarkdown file saves it to repo
 #'
-#' @param drct Path to output file 
-#'
-#' @param knitit Logical - if TRUE, knits the generated RMarkdown file
 
 #' @return
 #' TRUE if it worked
 #' @export
 #'
+#' 
+#' @import rmarkdown
+#' @import here
+#' 
 #' @examples
+#' generate_dashboard()
 #' 
-#' path_to_output_file <- "path/to/output/dash.Rmd"
 #' 
-#' generate_dashboard(path_to_output_file, TRUE)
-#' 
-#' ## generates 
-#' 
-generate_dashboard <- function(drct, knitit = FALSE) {
-  print("generate")
+
+
+generate_dashboard <- function() {
+    ## check the directory exists
+    dshfl <- "E:/project_folders/apps/db/dashboard/dash_rec2.Rmd"
+    if(!file.exists(dshfl)) {stop("Rmarkdown file doesn't exist")}
+    if(!dir.exists("resilience-dashboard")) {stop("Repo directory doesn't exist")}
+    gtsrc <- here("resilience-dashboard/src/resilience-dashboard.html")
+    gtpub <- here("resilience-dashboard/public/resilience-dashboard.html")
+    render(input = dshfl,  output_file = gtsrc)
+    file.copy(gtsrc, gtpub, overwrite = TRUE)
+    TRUE
 }

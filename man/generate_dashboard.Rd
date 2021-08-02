@@ -2,27 +2,18 @@
 % Please edit documentation in R/generate_dashboard.R
 \name{generate_dashboard}
 \alias{generate_dashboard}
-\title{Generates dashboard RMarkdown file}
+\title{Generates dashboard from RMarkdown file saves it to repo}
 \usage{
-generate_dashboard(drct, knitit = FALSE)
-}
-\arguments{
-\item{drct}{Path to output file}
-
-\item{knitit}{Logical - if TRUE, knits the generated RMarkdown file}
+generate_dashboard()
 }
 \value{
 TRUE if it worked
 }
 \description{
-Generates dashboard RMarkdown file
+Generates dashboard from RMarkdown file saves it to repo
 }
 \examples{
+generate_dashboard()
 
-path_to_output_file <- "path/to/output/dash.Rmd"
-
-generate_dashboard(path_to_output_file, TRUE)
-
-## generates 
 
 }

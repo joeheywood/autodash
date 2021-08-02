@@ -4,7 +4,7 @@
 \alias{chart_from_data}
 \title{Chart from data - produces chart for single indicator}
 \usage{
-chart_from_data(dtst)
+chart_from_data(dtst, txtfun = NULL)
 }
 \arguments{
 \item{dtst}{Character string that is primary key for indicator}

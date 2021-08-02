@@ -11,7 +11,8 @@ dsh_sub_region_line(
   ylb = "",
   src = "",
   lnk = "",
-  hv = "\%{y}"
+  hv = "\%{y}",
+  tckfmt = ""
 )
 }
 \arguments{

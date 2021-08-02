@@ -29,7 +29,8 @@ dsh_sub_region_line <- function(dat, ttl, xlb = "", ylb = "", src = "",
     
     cdat <- dat %>% left_join(shortens, by = c("lad11nm" = "LAD11NM")) %>%
         mutate(short = stringr::str_pad(short, 15, "right", " ")) %>%
-        filter(!is.na(subregion)) 
+        filter(!is.na(subregion)) %>%
+        arrange(x)
     
     
     srctxt <- ifelse(src == "", "", paste0("<i>Data source: ", src, "</i>"))
